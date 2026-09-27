@@ -20,6 +20,7 @@ WebSocket/STOMP · Testcontainers
 
 ```bash
 sdk use java 25.0.4-tem
+cp .env.example .env   # rellena credenciales si las necesitas
 docker compose up -d
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
@@ -34,8 +35,13 @@ Health check: `curl http://localhost:8080/actuator/health`
 
 ## Variables de entorno
 
-Ver [`.env.example`](.env.example). Para desarrollo local puedes copiarlo a `.env`
-(ignorado por git); los valores por defecto funcionan con el PostgreSQL de Docker Compose.
+Copia [`.env.example`](.env.example) a `.env` y rellena lo que necesites (por ejemplo las
+credenciales de Google). `.env` está ignorado por git y **no hace falta exportar nada**:
+Docker Compose lo lee automáticamente y el perfil `dev` de la app también
+(`spring.config.import`). Los valores por defecto funcionan con el PostgreSQL de Docker Compose.
+
+Para OAuth2 Google: descomenta `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env` y registra
+`http://localhost:8080/login/oauth2/code/google` como URI de redirección en Google Cloud.
 
 ## Ramas y commits
 
