@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -78,6 +79,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(ConflictException.class)
 	ProblemDetail handleConflict(ConflictException exception) {
 		return problem(HttpStatus.CONFLICT, "Conflict", exception.getMessage());
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	ProblemDetail handleBadRequest(BadRequestException exception) {
+		return problem(HttpStatus.BAD_REQUEST, "Bad request", exception.getMessage());
+	}
+
+	@ExceptionHandler(ForbiddenException.class)
+	ProblemDetail handleForbidden(ForbiddenException exception) {
+		return problem(HttpStatus.FORBIDDEN, "Forbidden", exception.getMessage());
+	}
+
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	ProblemDetail handleOptimisticLock(ObjectOptimisticLockingFailureException exception) {
+		return problem(HttpStatus.CONFLICT, "Conflict", "The resource was modified concurrently, please retry");
 	}
 
 	@ExceptionHandler(AccessDeniedException.class)

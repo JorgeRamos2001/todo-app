@@ -1,0 +1,37 @@
+package com.todo.boards.domain;
+
+public enum BoardAction {
+
+	VIEW_BOARD,
+
+	EDIT_BOARD,
+
+	DELETE_BOARD,
+
+	VIEW_ACTIVITIES,
+
+	INVITE_MEMBERS,
+
+	REMOVE_MEMBERS,
+
+	CHANGE_ROLES,
+
+	MANAGE_COLUMNS,
+
+	CREATE_TASK,
+
+	DELETE_TASK,
+
+	ASSIGN_TASK,
+
+	EDIT_TASK,
+
+	MOVE_TASK,
+
+	MANAGE_SUBTASKS,
+
+	COMMENT_TASK,
+
+	DELETE_COMMENT
+
+}
