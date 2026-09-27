@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/todo}
+    username: ${DB_USERNAME:todo}
+    password: ${DB_PASSWORD:todo}
+
+logging:
+  level:
+    com.todo: DEBUG
