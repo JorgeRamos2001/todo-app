@@ -11,6 +11,26 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:not-configured}
+            client-secret: ${GOOGLE_CLIENT_SECRET:not-configured}
+            scope:
+              - openid
+              - profile
+              - email
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-token-ttl: 15m
+      refresh-token-ttl: 7d
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
 
 management:
   endpoints:
