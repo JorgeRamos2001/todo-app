@@ -17,6 +17,8 @@ import com.todo.boards.dto.CreateBoardRequest;
 import com.todo.boards.dto.UpdateBoardRequest;
 import com.todo.boards.repository.BoardMemberRepository;
 import com.todo.boards.repository.BoardRepository;
+import com.todo.columns.dto.ColumnResponse;
+import com.todo.columns.service.ColumnService;
 import com.todo.shared.error.BadRequestException;
 import com.todo.shared.error.ResourceNotFoundException;
 import com.todo.users.domain.User;
@@ -31,13 +33,16 @@ public class BoardService {
 
 	private final BoardPermissionService boardPermissionService;
 
+	private final ColumnService columnService;
+
 	private final UserRepository userRepository;
 
 	public BoardService(BoardRepository boardRepository, BoardMemberRepository boardMemberRepository,
-			BoardPermissionService boardPermissionService, UserRepository userRepository) {
+			BoardPermissionService boardPermissionService, ColumnService columnService, UserRepository userRepository) {
 		this.boardRepository = boardRepository;
 		this.boardMemberRepository = boardMemberRepository;
 		this.boardPermissionService = boardPermissionService;
+		this.columnService = columnService;
 		this.userRepository = userRepository;
 	}
 
@@ -48,7 +53,7 @@ public class BoardService {
 		Board board = boardRepository
 			.save(new Board(request.title().trim(), request.description(), request.type(), owner));
 		BoardMember ownerMembership = boardMemberRepository.save(new BoardMember(board, owner, BoardRole.OWNER));
-		return toDetail(board, List.of(ownerMembership));
+		return toDetail(board, List.of(ownerMembership), List.of());
 	}
 
 	@Transactional(readOnly = true)
@@ -64,7 +69,8 @@ public class BoardService {
 	public BoardDetailResponse getDetail(Long boardId, Long userId) {
 		BoardMember member = boardPermissionService.requireMembership(boardId, userId);
 		boardPermissionService.check(member, BoardAction.VIEW_BOARD);
-		return toDetail(member.getBoard(), boardMemberRepository.findByBoardId(boardId));
+		return toDetail(member.getBoard(), boardMemberRepository.findByBoardId(boardId),
+				columnService.listByBoard(boardId, userId));
 	}
 
 	@Transactional
@@ -77,7 +83,7 @@ public class BoardService {
 		}
 		Board board = member.getBoard();
 		board.updateDetails(title, request.description());
-		return toDetail(board, boardMemberRepository.findByBoardId(boardId));
+		return toDetail(board, boardMemberRepository.findByBoardId(boardId), columnService.listByBoard(boardId, userId));
 	}
 
 	@Transactional
@@ -104,9 +110,9 @@ public class BoardService {
 		boardMemberRepository.delete(target);
 	}
 
-	private BoardDetailResponse toDetail(Board board, List<BoardMember> members) {
+	private BoardDetailResponse toDetail(Board board, List<BoardMember> members, List<ColumnResponse> columns) {
 		return new BoardDetailResponse(board.getId(), board.getTitle(), board.getDescription(), board.getType(),
-				board.getOwner().getId(), members.stream().map(this::toMember).toList());
+				board.getOwner().getId(), members.stream().map(this::toMember).toList(), columns);
 	}
 
 	private BoardSummaryResponse toSummary(Board board, BoardRole role) {
