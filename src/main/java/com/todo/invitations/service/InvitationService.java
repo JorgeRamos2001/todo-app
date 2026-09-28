@@ -3,12 +3,16 @@ package com.todo.invitations.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todo.boards.domain.BoardAction;
+import com.todo.boards.domain.BoardActivityAction;
+import com.todo.boards.domain.BoardActivityEntityType;
 import com.todo.boards.domain.BoardMember;
+import com.todo.boards.event.BoardEventPublisher;
 import com.todo.boards.repository.BoardMemberRepository;
 import com.todo.boards.service.BoardPermissionService;
 import com.todo.invitations.config.InvitationProperties;
@@ -42,9 +46,12 @@ public class InvitationService {
 
 	private final InvitationProperties invitationProperties;
 
+	private final BoardEventPublisher boardEventPublisher;
+
 	public InvitationService(InvitationRepository invitationRepository, BoardMemberRepository boardMemberRepository,
 			UserRepository userRepository, BoardPermissionService boardPermissionService, MailSender mailSender,
-			InvitationEmailComposer emailComposer, InvitationProperties invitationProperties) {
+			InvitationEmailComposer emailComposer, InvitationProperties invitationProperties,
+			BoardEventPublisher boardEventPublisher) {
 		this.invitationRepository = invitationRepository;
 		this.boardMemberRepository = boardMemberRepository;
 		this.userRepository = userRepository;
@@ -52,6 +59,7 @@ public class InvitationService {
 		this.mailSender = mailSender;
 		this.emailComposer = emailComposer;
 		this.invitationProperties = invitationProperties;
+		this.boardEventPublisher = boardEventPublisher;
 	}
 
 	@Transactional
@@ -69,6 +77,9 @@ public class InvitationService {
 		}
 		Invitation invitation = invitationRepository.save(new Invitation(actor.getBoard(), actor.getUser(), email,
 				request.role(), SecureTokens.randomToken(), Instant.now().plus(invitationProperties.ttl())));
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.INVITATION_CREATED,
+				BoardActivityEntityType.INVITATION, invitation.getId(),
+				Map.of("email", email, "role", request.role().name()));
 		mailSender.send(emailComposer.compose(invitation, invitationProperties));
 		return InvitationResponse.from(invitation);
 	}
@@ -102,6 +113,12 @@ public class InvitationService {
 			boardMemberRepository.save(new BoardMember(invitation.getBoard(), user, invitation.getRole()));
 		}
 		invitation.accept();
+		boardEventPublisher.publish(invitation.getBoard().getId(), userId, BoardActivityAction.INVITATION_ACCEPTED,
+				BoardActivityEntityType.INVITATION, invitation.getId(),
+				Map.of("email", invitation.getInviteeEmail(), "role", invitation.getRole().name()));
+		boardEventPublisher.publish(invitation.getBoard().getId(), userId, BoardActivityAction.MEMBER_JOINED,
+				BoardActivityEntityType.MEMBER, user.getId(),
+				Map.of("email", user.getEmail(), "role", invitation.getRole().name()));
 		return InvitationResponse.from(invitation);
 	}
 
@@ -111,6 +128,9 @@ public class InvitationService {
 		User user = findUser(userId);
 		requireInvitee(invitation, user);
 		invitation.reject();
+		boardEventPublisher.publish(invitation.getBoard().getId(), userId, BoardActivityAction.INVITATION_REJECTED,
+				BoardActivityEntityType.INVITATION, invitation.getId(),
+				Map.of("email", invitation.getInviteeEmail(), "role", invitation.getRole().name()));
 		return InvitationResponse.from(invitation);
 	}
 

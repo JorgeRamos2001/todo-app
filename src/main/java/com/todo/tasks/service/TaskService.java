@@ -1,12 +1,16 @@
 package com.todo.tasks.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todo.boards.domain.BoardAction;
+import com.todo.boards.domain.BoardActivityAction;
+import com.todo.boards.domain.BoardActivityEntityType;
 import com.todo.boards.domain.BoardMember;
+import com.todo.boards.event.BoardEventPublisher;
 import com.todo.boards.repository.BoardMemberRepository;
 import com.todo.boards.service.BoardPermissionService;
 import com.todo.columns.domain.BoardColumn;
@@ -31,12 +35,16 @@ public class TaskService {
 
 	private final BoardPermissionService boardPermissionService;
 
+	private final BoardEventPublisher boardEventPublisher;
+
 	public TaskService(TaskRepository taskRepository, BoardColumnRepository boardColumnRepository,
-			BoardMemberRepository boardMemberRepository, BoardPermissionService boardPermissionService) {
+			BoardMemberRepository boardMemberRepository, BoardPermissionService boardPermissionService,
+			BoardEventPublisher boardEventPublisher) {
 		this.taskRepository = taskRepository;
 		this.boardColumnRepository = boardColumnRepository;
 		this.boardMemberRepository = boardMemberRepository;
 		this.boardPermissionService = boardPermissionService;
+		this.boardEventPublisher = boardEventPublisher;
 	}
 
 	@Transactional
@@ -47,6 +55,9 @@ public class TaskService {
 		int position = taskRepository.findByColumnIdOrderByPosition(columnId).size();
 		Task task = taskRepository
 			.save(new Task(column, request.title().trim(), request.description(), position, actor.getUser()));
+		boardEventPublisher.publish(column.getBoard().getId(), userId, BoardActivityAction.TASK_CREATED,
+				BoardActivityEntityType.TASK, task.getId(),
+				Map.of("title", task.getTitle(), "columnId", columnId));
 		return TaskResponse.from(task);
 	}
 
@@ -74,6 +85,7 @@ public class TaskService {
 		if (title != null && title.isEmpty()) {
 			throw new BadRequestException("Task title must not be blank");
 		}
+		Long sourceColumnId = task.getColumn().getId();
 		task.updateDetails(title, request.description());
 		if (moving) {
 			BoardColumn target = changingColumn ? findColumn(request.columnId()) : task.getColumn();
@@ -81,6 +93,14 @@ public class TaskService {
 				throw new BadRequestException("Task can only be moved within the same board");
 			}
 			placeTask(task, target, request.position());
+			boardEventPublisher.publish(boardId, userId, BoardActivityAction.TASK_MOVED,
+					BoardActivityEntityType.TASK, taskId,
+					Map.of("title", task.getTitle(), "fromColumnId", sourceColumnId, "toColumnId",
+							task.getColumn().getId(), "position", task.getPosition()));
+		}
+		else {
+			boardEventPublisher.publish(boardId, userId, BoardActivityAction.TASK_UPDATED,
+					BoardActivityEntityType.TASK, taskId, Map.of("title", task.getTitle()));
 		}
 		return TaskResponse.from(task);
 	}
@@ -94,6 +114,10 @@ public class TaskService {
 		BoardMember assignee = boardMemberRepository.findByBoardIdAndUserId(boardId, request.userId())
 			.orElseThrow(() -> new BadRequestException("Assignee must be a board member"));
 		task.assign(assignee.getUser());
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.TASK_ASSIGNED,
+				BoardActivityEntityType.TASK, taskId,
+				Map.of("title", task.getTitle(), "assigneeId", assignee.getUser().getId(), "assigneeName",
+						assignee.getUser().getName()));
 		return TaskResponse.from(task);
 	}
 
@@ -104,6 +128,8 @@ public class TaskService {
 		Long columnId = task.getColumn().getId();
 		BoardMember actor = boardPermissionService.requireMembership(boardId, userId);
 		boardPermissionService.check(actor, BoardAction.DELETE_TASK);
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.TASK_DELETED,
+				BoardActivityEntityType.TASK, taskId, Map.of("title", task.getTitle()));
 		taskRepository.delete(task);
 		reindex(columnId);
 	}

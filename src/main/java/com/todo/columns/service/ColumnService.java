@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todo.boards.domain.BoardAction;
+import com.todo.boards.domain.BoardActivityAction;
+import com.todo.boards.domain.BoardActivityEntityType;
 import com.todo.boards.domain.BoardMember;
+import com.todo.boards.event.BoardEventPublisher;
 import com.todo.boards.service.BoardPermissionService;
 import com.todo.columns.domain.BoardColumn;
 import com.todo.columns.dto.ColumnResponse;
@@ -31,11 +34,14 @@ public class ColumnService {
 
 	private final BoardPermissionService boardPermissionService;
 
+	private final BoardEventPublisher boardEventPublisher;
+
 	public ColumnService(BoardColumnRepository boardColumnRepository, TaskRepository taskRepository,
-			BoardPermissionService boardPermissionService) {
+			BoardPermissionService boardPermissionService, BoardEventPublisher boardEventPublisher) {
 		this.boardColumnRepository = boardColumnRepository;
 		this.taskRepository = taskRepository;
 		this.boardPermissionService = boardPermissionService;
+		this.boardEventPublisher = boardEventPublisher;
 	}
 
 	@Transactional
@@ -45,6 +51,8 @@ public class ColumnService {
 		int position = boardColumnRepository.findByBoardIdOrderByPosition(boardId).size();
 		BoardColumn column = boardColumnRepository
 			.save(new BoardColumn(actor.getBoard(), request.name().trim(), position));
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.COLUMN_CREATED,
+				BoardActivityEntityType.COLUMN, column.getId(), Map.of("name", column.getName()));
 		return toResponse(column, List.of());
 	}
 
@@ -74,6 +82,9 @@ public class ColumnService {
 		if (request.position() != null) {
 			placeColumn(column, request.position());
 		}
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.COLUMN_UPDATED,
+				BoardActivityEntityType.COLUMN, columnId,
+				Map.of("name", column.getName(), "position", column.getPosition()));
 		return toResponse(column, taskRepository.findByColumnIdOrderByPosition(columnId));
 	}
 
@@ -81,8 +92,11 @@ public class ColumnService {
 	public void delete(Long boardId, Long columnId, Long userId) {
 		BoardMember actor = boardPermissionService.requireMembership(boardId, userId);
 		boardPermissionService.check(actor, BoardAction.MANAGE_COLUMNS);
-		boardColumnRepository.delete(findColumn(boardId, columnId));
+		BoardColumn column = findColumn(boardId, columnId);
+		boardColumnRepository.delete(column);
 		reindex(boardId);
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.COLUMN_DELETED,
+				BoardActivityEntityType.COLUMN, columnId, Map.of("name", column.getName()));
 	}
 
 	private BoardColumn findColumn(Long boardId, Long columnId) {
