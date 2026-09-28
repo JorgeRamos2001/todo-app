@@ -43,6 +43,11 @@ Docker Compose lo lee automáticamente y el perfil `dev` de la app también
 Para OAuth2 Google: descomenta `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env` y registra
 `http://localhost:8080/login/oauth2/code/google` como URI de redirección en Google Cloud.
 
+Correos de invitación: de momento no hay un dominio registrado en Resend, por lo que los correos no
+se envían; quedan registrados en los logs y el token de la invitación es accesible vía
+`GET /api/v1/boards/{id}/invitations`. Al registrar y verificar un dominio en Resend y definir
+`RESEND_API_KEY` y `MAIL_FROM`, el envío funcionará sin cambios de código.
+
 ## Ramas y commits
 
 `main` solo recibe PRs desde `develop`; el trabajo se hace en ramas `feature/*`, `fix/*` o
