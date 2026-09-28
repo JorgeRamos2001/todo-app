@@ -1,8 +1,15 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/todo}
     username: ${DB_USERNAME:todo}
     password: ${DB_PASSWORD:todo}
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-0123456789abcdef}
 
 logging:
   level:

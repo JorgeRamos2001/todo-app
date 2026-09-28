@@ -1,0 +1,4 @@
+app:
+  security:
+    jwt:
+      secret: test-only-jwt-secret-change-me-0123456789abcdef
