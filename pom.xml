@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.todo</groupId>
 	<artifactId>todo-app</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>todo-app</name>
 	<description>Task management backend (Trello-style): boards, tasks, collaboration and realtime</description>
 
