@@ -98,10 +98,20 @@ por git y **no hace falta exportar nada**: Docker Compose lo lee automáticament
 | `RESEND_API_KEY`, `MAIL_FROM` | Envío de correos; sin API key se registran en logs |
 | `INVITATION_ACCEPT_URL`, `INVITATION_REJECT_URL` | Links usados en el correo de invitación |
 
-Notas de correo: Resend exige un **dominio verificado** para enviar a terceros. De momento no hay
-dominio registrado, por lo que los correos no se envían y quedan en logs; el token de la
-invitación es accesible vía `GET /api/v1/boards/{id}/invitations`. Al verificar un dominio y
-definir `RESEND_API_KEY`/`MAIL_FROM`, el envío funciona sin cambios de código.
+### Envío real de correos (Resend)
+
+`ResendMailSender` envía vía `POST https://api.resend.com/emails`. Resend exige un **dominio
+verificado propio** para enviar a terceros; sin dominio solo se puede enviar desde
+`onboarding@resend.dev` **a tu propia cuenta** de Resend.
+
+1. Registra/elige un dominio y añádelo en Resend → Domains (recomendado un subdominio, p. ej.
+   `notifications.tudominio.com`).
+2. Crea los registros DNS (SPF/DKIM) que indique Resend y espera la verificación.
+3. En `.env`: `RESEND_API_KEY=re_...` y `MAIL_FROM=no-reply@tudominio.com`.
+4. Reinicia la app: las invitaciones se enviarán de verdad.
+
+Mientras no haya dominio, la app sigue funcionando: sin `RESEND_API_KEY` los correos quedan en los
+logs y el token de la invitación es accesible vía `GET /api/v1/boards/{id}/invitations`.
 
 ## Docker (app empaquetada)
 
