@@ -12,6 +12,9 @@ import com.todo.boards.dto.BoardActivityResponse;
 import com.todo.boards.service.BoardActivityService;
 import com.todo.shared.dto.PageResponse;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Board activities", description = "Log de actividad del tablero (solo Owner)")
 @RestController
 @RequestMapping("/api/v1/boards/{boardId}/activities")
 public class BoardActivityController {

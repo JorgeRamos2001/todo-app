@@ -20,8 +20,10 @@ import com.todo.tasks.dto.TaskResponse;
 import com.todo.tasks.dto.UpdateTaskRequest;
 import com.todo.tasks.service.TaskService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Tasks", description = "Tareas: crear, editar, mover y asignar")
 @RestController
 public class TaskController {
 
