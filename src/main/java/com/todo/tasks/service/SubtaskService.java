@@ -1,12 +1,16 @@
 package com.todo.tasks.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todo.boards.domain.BoardAction;
+import com.todo.boards.domain.BoardActivityAction;
+import com.todo.boards.domain.BoardActivityEntityType;
 import com.todo.boards.domain.BoardMember;
+import com.todo.boards.event.BoardEventPublisher;
 import com.todo.boards.service.BoardPermissionService;
 import com.todo.shared.error.BadRequestException;
 import com.todo.shared.error.ResourceNotFoundException;
@@ -27,11 +31,14 @@ public class SubtaskService {
 
 	private final BoardPermissionService boardPermissionService;
 
+	private final BoardEventPublisher boardEventPublisher;
+
 	public SubtaskService(SubtaskRepository subtaskRepository, TaskRepository taskRepository,
-			BoardPermissionService boardPermissionService) {
+			BoardPermissionService boardPermissionService, BoardEventPublisher boardEventPublisher) {
 		this.subtaskRepository = subtaskRepository;
 		this.taskRepository = taskRepository;
 		this.boardPermissionService = boardPermissionService;
+		this.boardEventPublisher = boardEventPublisher;
 	}
 
 	@Transactional
@@ -40,6 +47,9 @@ public class SubtaskService {
 		requireManageSubtasks(task, userId);
 		int position = subtaskRepository.findByTaskIdOrderByPosition(taskId).size();
 		Subtask subtask = subtaskRepository.save(new Subtask(task, request.title().trim(), position));
+		boardEventPublisher.publish(task.getColumn().getBoard().getId(), userId, BoardActivityAction.SUBTASK_CREATED,
+				BoardActivityEntityType.SUBTASK, subtask.getId(),
+				Map.of("title", subtask.getTitle(), "taskId", taskId));
 		return SubtaskResponse.from(subtask);
 	}
 
@@ -68,6 +78,9 @@ public class SubtaskService {
 		if (request.position() != null) {
 			placeSubtask(subtask, request.position());
 		}
+		boardEventPublisher.publish(task.getColumn().getBoard().getId(), userId, BoardActivityAction.SUBTASK_UPDATED,
+				BoardActivityEntityType.SUBTASK, subtaskId,
+				Map.of("title", subtask.getTitle(), "done", subtask.isDone(), "position", subtask.getPosition()));
 		return SubtaskResponse.from(subtask);
 	}
 
@@ -75,8 +88,11 @@ public class SubtaskService {
 	public void delete(Long taskId, Long subtaskId, Long userId) {
 		Task task = findTask(taskId);
 		requireManageSubtasks(task, userId);
-		subtaskRepository.delete(findSubtask(taskId, subtaskId));
+		Subtask subtask = findSubtask(taskId, subtaskId);
+		subtaskRepository.delete(subtask);
 		reindex(taskId);
+		boardEventPublisher.publish(task.getColumn().getBoard().getId(), userId, BoardActivityAction.SUBTASK_DELETED,
+				BoardActivityEntityType.SUBTASK, subtaskId, Map.of("title", subtask.getTitle()));
 	}
 
 	private void placeSubtask(Subtask subtask, int position) {

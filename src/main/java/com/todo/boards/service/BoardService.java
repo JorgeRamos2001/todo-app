@@ -2,12 +2,15 @@ package com.todo.boards.service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todo.boards.domain.Board;
 import com.todo.boards.domain.BoardAction;
+import com.todo.boards.domain.BoardActivityAction;
+import com.todo.boards.domain.BoardActivityEntityType;
 import com.todo.boards.domain.BoardMember;
 import com.todo.boards.domain.BoardRole;
 import com.todo.boards.dto.BoardDetailResponse;
@@ -15,6 +18,7 @@ import com.todo.boards.dto.BoardMemberResponse;
 import com.todo.boards.dto.BoardSummaryResponse;
 import com.todo.boards.dto.CreateBoardRequest;
 import com.todo.boards.dto.UpdateBoardRequest;
+import com.todo.boards.event.BoardEventPublisher;
 import com.todo.boards.repository.BoardMemberRepository;
 import com.todo.boards.repository.BoardRepository;
 import com.todo.columns.dto.ColumnResponse;
@@ -35,14 +39,18 @@ public class BoardService {
 
 	private final ColumnService columnService;
 
+	private final BoardEventPublisher boardEventPublisher;
+
 	private final UserRepository userRepository;
 
 	public BoardService(BoardRepository boardRepository, BoardMemberRepository boardMemberRepository,
-			BoardPermissionService boardPermissionService, ColumnService columnService, UserRepository userRepository) {
+			BoardPermissionService boardPermissionService, ColumnService columnService,
+			BoardEventPublisher boardEventPublisher, UserRepository userRepository) {
 		this.boardRepository = boardRepository;
 		this.boardMemberRepository = boardMemberRepository;
 		this.boardPermissionService = boardPermissionService;
 		this.columnService = columnService;
+		this.boardEventPublisher = boardEventPublisher;
 		this.userRepository = userRepository;
 	}
 
@@ -53,6 +61,9 @@ public class BoardService {
 		Board board = boardRepository
 			.save(new Board(request.title().trim(), request.description(), request.type(), owner));
 		BoardMember ownerMembership = boardMemberRepository.save(new BoardMember(board, owner, BoardRole.OWNER));
+		boardEventPublisher.publish(board.getId(), userId, BoardActivityAction.BOARD_CREATED,
+				BoardActivityEntityType.BOARD, board.getId(),
+				Map.of("title", board.getTitle(), "type", board.getType().name()));
 		return toDetail(board, List.of(ownerMembership), List.of());
 	}
 
@@ -83,6 +94,8 @@ public class BoardService {
 		}
 		Board board = member.getBoard();
 		board.updateDetails(title, request.description());
+		boardEventPublisher.publish(boardId, userId, BoardActivityAction.BOARD_UPDATED,
+				BoardActivityEntityType.BOARD, boardId, Map.of("title", board.getTitle()));
 		return toDetail(board, boardMemberRepository.findByBoardId(boardId), columnService.listByBoard(boardId, userId));
 	}
 
@@ -108,6 +121,9 @@ public class BoardService {
 			.orElseThrow(() -> new ResourceNotFoundException("Board member not found"));
 		boardPermissionService.checkRemoveMember(actor, target);
 		boardMemberRepository.delete(target);
+		boardEventPublisher.publish(boardId, actorId, BoardActivityAction.MEMBER_REMOVED,
+				BoardActivityEntityType.MEMBER, target.getUser().getId(),
+				Map.of("email", target.getUser().getEmail(), "role", target.getRole().name()));
 	}
 
 	private BoardDetailResponse toDetail(Board board, List<BoardMember> members, List<ColumnResponse> columns) {
