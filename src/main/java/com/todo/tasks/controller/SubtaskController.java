@@ -20,8 +20,10 @@ import com.todo.tasks.dto.SubtaskResponse;
 import com.todo.tasks.dto.UpdateSubtaskRequest;
 import com.todo.tasks.service.SubtaskService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Subtasks", description = "Subtareas de una tarea")
 @RestController
 @RequestMapping("/api/v1/tasks/{taskId}/subtasks")
 public class SubtaskController {

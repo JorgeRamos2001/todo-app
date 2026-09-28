@@ -18,8 +18,10 @@ import com.todo.tasks.dto.CommentResponse;
 import com.todo.tasks.dto.CreateCommentRequest;
 import com.todo.tasks.service.CommentService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Comments", description = "Comentarios de una tarea")
 @RestController
 @RequestMapping("/api/v1/tasks/{taskId}/comments")
 public class CommentController {

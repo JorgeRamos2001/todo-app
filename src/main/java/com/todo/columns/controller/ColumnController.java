@@ -20,8 +20,10 @@ import com.todo.columns.dto.CreateColumnRequest;
 import com.todo.columns.dto.UpdateColumnRequest;
 import com.todo.columns.service.ColumnService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Columns", description = "Columnas del tablero")
 @RestController
 @RequestMapping("/api/v1/boards/{boardId}/columns")
 public class ColumnController {

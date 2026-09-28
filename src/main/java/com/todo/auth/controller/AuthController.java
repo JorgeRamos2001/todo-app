@@ -13,8 +13,10 @@ import com.todo.auth.dto.RefreshRequest;
 import com.todo.auth.dto.RegisterRequest;
 import com.todo.auth.service.AuthService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Auth", description = "Registro, login, refresh y OAuth2 con Google")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {

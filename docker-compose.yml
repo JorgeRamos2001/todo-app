@@ -18,5 +18,28 @@ services:
       retries: 5
       start_period: 10s
 
+  app:
+    build: .
+    container_name: todo-app
+    profiles: ["full"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-todo}
+      DB_USERNAME: ${POSTGRES_USER:-todo}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-todo}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret-value-at-least-32-bytes}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-not-configured}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-not-configured}
+      OAUTH2_REDIRECT_URI: ${OAUTH2_REDIRECT_URI:-http://localhost:3000/oauth2/callback}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@example.com}
+      INVITATION_ACCEPT_URL: ${INVITATION_ACCEPT_URL:-http://localhost:3000/invitations/accept}
+      INVITATION_REJECT_URL: ${INVITATION_REJECT_URL:-http://localhost:3000/invitations/reject}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
 volumes:
   postgres-data:

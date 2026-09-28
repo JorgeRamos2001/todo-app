@@ -22,8 +22,10 @@ import com.todo.boards.dto.CreateBoardRequest;
 import com.todo.boards.dto.UpdateBoardRequest;
 import com.todo.boards.service.BoardService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Boards", description = "Tableros, membresias y permisos")
 @RestController
 @RequestMapping("/api/v1/boards")
 public class BoardController {

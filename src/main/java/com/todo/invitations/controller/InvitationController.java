@@ -16,8 +16,10 @@ import com.todo.invitations.dto.CreateInvitationRequest;
 import com.todo.invitations.dto.InvitationResponse;
 import com.todo.invitations.service.InvitationService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Invitations", description = "Invitaciones por correo y aceptar/rechazar")
 @RestController
 public class InvitationController {
 
